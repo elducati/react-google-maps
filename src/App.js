@@ -1,6 +1,6 @@
-import React, {useState, useCallback} from "react"
+import React, {useState, useCallback, useRef} from "react"
 import { GoogleMap, useLoadScript, Marker, InfoWindow } from '@react-google-maps/api';
-
+import { formatRelative } from "date-fns"
 import mapStyles from "./mapStyles"
 
 function App() {
@@ -23,6 +23,7 @@ function App() {
     libraries,
   })
   const [markers, setMarkers] = useState([])
+  const [selected, setSelected] = useState(null)
   const onMapClick = useCallback((event)=>{
     setMarkers((current) => 
     [...current,{
@@ -32,6 +33,10 @@ function App() {
     },
   ])
   }, [])
+  const mapRef = useRef()
+  const onMapLoad = useCallback((map)=> {
+    mapRef.current = map
+  },[])
   if (loadError) return "Error loading maps"
   if (!isLoaded) return "Loading Maps"
   return (
@@ -42,12 +47,31 @@ function App() {
       zoom={8} 
       center={center}
       options={options}
-      onClick={onMapClick}>
+      onClick={onMapClick}
+      onLoad={onMapLoad}
+      >
       {markers.map((marker) => (
         <Marker
         key={marker.time.toISOString()}
-        position={{lat:marker.lat, lng: marker.lng}}/>
+        position={{lat:marker.lat, lng: marker.lng}}
+        onClick={()=> {
+          setSelected(marker)
+        }}
+        />
       ))}
+      {selected ? (
+      <InfoWindow 
+      position={{lat: selected.lat, lng: selected.lng}}
+      onCloseClick={()=>{
+        setSelected(null)
+      }}
+      >
+        <div>
+          <h2>Bear spotted</h2>
+      <p>spotted {formatRelative(selected.time, new Date())}</p>
+        </div>
+      </InfoWindow>
+      ): null}
       </GoogleMap>
     </div>
   );
